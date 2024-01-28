@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SpotiTwitch - Connected</title>
+    <style>
+        :root {
+            --display-width: 1920px;
+            --display-height: 1080px;
+            --vinyle-width: 500px;
+            --vinyle-height: 500px;
+            --box-height: calc(var(--vinyle-height) / 2);
+            --box-width: 600px;
+            --center-box-top: calc(var(--vinyle-height) / 2 - var(--box-height) / 2);
+            --half-display-width: calc(var(--display-width) / 2);
+            --half-box-width: calc(var(--box-width) / 4);
+            --end-box: calc(var(--half-display-width) + var(--half-box-width));
+            --color-box: rgba(0, 0, 0, 0.79);
+        }
+
+        body {
+            background-color: transparent;
+        }
+
+        * {
+            min-width: 0;
+            min-height: 0;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .vinyl {
+            width: var(--vinyle-width);
+            height: var(--vinyle-height);
+            background-image: url("https://i.pinimg.com/originals/0f/6e/9e/0f6e9e2b6b5b6b6b6b6b6b6b6b6b6b6b.jpg");
+            background-size: cover;
+            background-position: center;
+            border-radius: 50%;
+            margin: 0 auto;
+            position: relative;
+            overflow: hidden;
+            animation: rot 10s linear infinite;
+            z-index: 5;
+        }
+
+        .rond {
+            width: 100px;
+            height: 100px;
+            background-color: #000;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes rot {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .small-box {
+            width: var(--box-width);
+            height: var(--box-height);
+            background-color: var(--color-box);
+            margin: 0 auto;
+            position: absolute;
+            top: var(--center-box-top);
+            left: var(--end-box);
+            overflow: hidden;
+        }
+
+        .small-box-content-text {
+            color: #fff;
+            height: 100%;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 40px;
+            font-weight: bold;
+            text-align: center;
+            overflow: hidden;
+            white-space: nowrap;
+        }
+
+
+        .loading-bar {
+            width: 100%;
+            height: 10px;
+            background-color: var(--color-box);
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            border: 1px solid #000;
+        }
+
+        .loading-bar-progress {
+            width: 0%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.8);
+            transition: width 0.5s ease-in-out;
+        }
+
+
+    </style>
+</head>
+<body>
+<div class="main">
+    <div class="container">
+        <div class="vinyl">
+            <div class="rond"></div>
+            <img id="album-cover" src="" alt="Pochette d'album">
+        </div>
+        <div class="small-box">
+            <div class="small-box-content-text">
+                <div class="marquee-artist">
+                    <div class="marquee__inner__artist">
+                        <span id="artist-name-1">Chargement...</span>
+                        <span id="artist-name-2">Chargement...</span>
+                        <span id="artist-name-3">Chargement...</span>
+                    </div>
+                </div>
+                <div class="marquee-song">
+                    <div class="marquee__inner__song">
+                        <span id="song-name-1">Chargement...</span>
+                        <span id="song-name-2">Chargement...</span>
+                        <span id="song-name-3">Chargement...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="loading-bar">
+            <div class="loading-bar-progress"></div>
+        </div>
+        <div style="display: none">
+            <p id="song-duration"></p>
+            <p id="song-progress"></p>
+            <p id="song-progress-percent"></p>
+        </div>
+    </div>
+</div>
+</div>
+
+
+</body>
+
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        isTokenInUrl();
+    });
+
+    function isTokenInUrl() {
+        const accessToken = getAccessTokenFromUrl();
+        if (accessToken) {
+            console.log('Token d\'accès récupéré:', accessToken);
+            fetchCurrentlyPlaying(accessToken);
+            // Utilisez le token ici pour faire des requêtes à l'API Spotify
+        } else {
+            console.error('Token d\'accès non trouvé dans l\'URL');
+            // Redirige l'utilisateur vers Spotify
+            var client_id = '324a24a6a90c4cb396505d1b0def7c07';
+            var redirect_uri = 'http://localhost:63342/SpotifyTwitch/connected.html';
+            var scopes = 'user-read-playback-state';
+            window.location.href = 'https://accounts.spotify.com/authorize' +
+                '?response_type=token' +
+                '&client_id=' + encodeURIComponent(client_id) +
+                '&scope=' + encodeURIComponent(scopes) +
+                '&redirect_uri=' + encodeURIComponent(redirect_uri);
+        }
+    }
+
+    function getAccessTokenFromUrl() {
+        const hash = window.location.hash.substring(1);
+        const params = new URLSearchParams(hash);
+        return params.get('access_token');
+    }
+
+    function fetchCurrentlyPlaying(token) {
+        fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+            headers: {'Authorization': 'Bearer ' + token}
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Erreur réseau');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data && data.item) {
+                    // document.getElementById('song-name').innerText = data.item.name;
+                    // document.getElementById('artist-name').innerText = data.item.artists.map(artist => artist.name).join(', ');
+                    // TODO : https://tympanus.net/codrops/2020/03/31/css-only-marquee-effect/ we have to adapt this if the artist name is too long
+
+                    document.getElementById('song-duration').innerText = formatDuration(data.item.duration_ms);
+                    document.getElementById('song-progress').innerText = formatDuration(data.progress_ms);
+                    document.getElementById('album-cover').src = data.item.album.images[0].url;
+                } else {
+                    console.log('Aucune musique en cours de lecture.');
+                }
+            })
+            .catch(error => console.error('Erreur lors de la récupération des données:', error));
+    }
+
+    // Fonction pour formater la durée en millisecondes en un format lisible
+    function formatDuration(ms) {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = ((ms % 60000) / 1000).toFixed(0);
+        return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+    }
+
+    function oneSecondAdd() {
+        // Ajouter une seconde à position actuelle toutes les secondes
+        let songProgress = document.getElementById('song-progress').innerText;
+        let songProgressArray = songProgress.split(':');
+        let songProgressSeconds = parseInt(songProgressArray[0]) * 60 + parseInt(songProgressArray[1]);
+        songProgressSeconds++;
+        let songProgressMinutes = Math.floor(songProgressSeconds / 60);
+        let songProgressSecondsRest = songProgressSeconds % 60;
+        if (songProgressSecondsRest < 10) {
+            songProgressSecondsRest = '0' + songProgressSecondsRest;
+        }
+        document.getElementById('song-progress').innerText = songProgressMinutes + ':' + songProgressSecondsRest;
+        let songDuration = document.getElementById('song-duration').innerText;
+        let songDurationArray = songDuration.split(':');
+        let songDurationSeconds = parseInt(songDurationArray[0]) * 60 + parseInt(songDurationArray[1]);
+        let songProgressPercent = songProgressSeconds / songDurationSeconds * 100;
+        document.getElementById('song-progress-percent').innerText = songProgressPercent;
+        document.getElementsByClassName('loading-bar-progress')[0].style.width = songProgressPercent + '%';
+    }
+
+    // Fonction pour relancer la fonction fetchCurrentlyPlaying des que la musique change
+    function refreshData() {
+        const accessToken = getAccessTokenFromUrl();
+        if (accessToken) {
+            console.log('Token d\'accès récupéré:', accessToken);
+            fetchCurrentlyPlaying(accessToken);
+            // Utilisez le token ici pour faire des requêtes à l'API Spotify
+        } else {
+            console.error('Token d\'accès non trouvé dans l\'URL');
+            isTokenInUrl();
+        }
+    }
+
+    // Fonction pour relancer la fonction refreshData dès que song-progress > song-duration
+    function refreshDataIfSongFinished() {
+        let songProgress = document.getElementById('song-progress').innerText;
+        let songProgressArray = songProgress.split(':');
+        let songProgressSeconds = parseInt(songProgressArray[0]) * 60 + parseInt(songProgressArray[1]);
+        let songDuration = document.getElementById('song-duration').innerText;
+        let songDurationArray = songDuration.split(':');
+        let songDurationSeconds = parseInt(songDurationArray[0]) * 60 + parseInt(songDurationArray[1]);
+        if (songProgressSeconds >= songDurationSeconds) {
+            refreshData();
+        }
+    }
+
+
+    setInterval(oneSecondAdd, 1000); // On ajoute une seconde toutes les secondes
+    setInterval(refreshDataIfSongFinished, 1000); // On vérifie toutes les secondes si la musique est finie
+    setInterval(refreshData, 15000) // On vérifie toutes les 15 secondes si la musique a changé
+
+</script>
+
+</html>
