@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+    <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -18,7 +18,7 @@
             position: relative;
             transform: translate3d(var(--move-initial), 0, 0);
             animation: marquee 7s linear infinite;
-            animation-play-state: paused;
+            animation-play-state: running;
         }
 
         .marquee span {
@@ -26,9 +26,6 @@
             padding: 0 2vw;
         }
 
-        .marquee:hover .marquee__inner {
-            animation-play-state: running;
-        }
 
         @keyframes marquee {
             0% {
@@ -44,10 +41,10 @@
 <body>
 <div class="marquee">
     <div class="marquee__inner" aria-hidden="true">
-        <span>Showreel</span>
-        <span>Showreel</span>
-        <span>Showreel</span>
-        <span>Showreel</span>
+        <span>Yvnnis,Lyre,NeS</span>
+        <span>Yvnnis,Lyre,NeS</span>
+        <span>Yvnnis,Lyre,NeS</span>
+        <span>Yvnnis,Lyre,NeS</span>
     </div>
 </div>
 </body>
