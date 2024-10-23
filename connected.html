@@ -197,14 +197,31 @@
         }
 
 
+        /* Assurez-vous que les textes défilants utilisent les mêmes styles */
+        .marquee__inner__artist span, .marquee__inner__song span,
+        .artist-name, .song-name {
+            font-family: 'Montserrat', sans-serif; /* Choix de la police */
+            font-size: 100px; /* Taille de la police */
+        }
+
+        /* Ajuster la taille des éléments en mode défilement */
+        .marquee__inner__artist span, .marquee__inner__song span {
+            font-size: 100px; /* Vous pouvez ajuster pour les rendre plus petits ou plus grands */
+            font-weight: bold; /* Ajuster le poids de la police si nécessaire */
+        }
+
+
+
     </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/color-thief/2.3.0/color-thief.umd.js"></script>
+
 </head>
 <body>
 <div class="main">
     <div class="container">
         <div class="vinyl">
             <div class="rond"></div>
-            <img id="album-cover" src="" alt="Pochette d'album">
+            <img id="album-cover" src="" alt="Pochette d'album" crossorigin="anonymous">
 <!--            <img class="overlay-image" src="transparent-image.png">-->
         </div>
 
@@ -263,7 +280,67 @@
         } else {
             redirectToSpotifyAuth();
         }
+
+        const albumCover = document.getElementById('album-cover');
+        albumCover.addEventListener('load', () => {
+            applyDominantColor(albumCover);
+        });
     });
+
+    function applyDominantColor(image) {
+        const colorThief = new ColorThief();
+
+        if (!image.complete) return;
+
+        const dominantColor = colorThief.getColor(image); // Récupère la couleur dominante [R, G, B]
+        const palette = colorThief.getPalette(image, 5);  // Récupère une palette de couleurs
+
+        // Convertir la couleur dominante en format CSS
+        const dominantColorCss = rgbToCss(dominantColor);
+
+        // Appliquer la couleur dominante à l'arrière-plan de la boîte
+        setElementBackgroundColor('.small-box', dominantColorCss);
+
+        // Assigner une couleur de texte contrastée
+        const textColor = getContrastingTextColor(dominantColor);
+        setTextColor('.artist-name, .song-name, .marquee-artist, .marquee-song', textColor);
+    }
+
+    // Fonction pour convertir un tableau RGB en chaîne CSS
+    function rgbToCss(rgbArray) {
+        return `rgb(${rgbArray.join(',')})`;
+    }
+
+    // Fonction pour appliquer la couleur d'arrière-plan à un élément
+    function setElementBackgroundColor(selector, color) {
+        const element = document.querySelector(selector);
+        if (element) {
+            element.style.backgroundColor = color;
+            element.style.transition = 'background-color 0.5s ease'; // Transition fluide pour l'esthétique
+        }
+    }
+
+    // Fonction pour définir la couleur de texte sur plusieurs éléments
+    function setTextColor(selector, color) {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach(el => {
+            el.style.color = color;
+            el.style.transition = 'color 0.5s ease'; // Transition fluide pour un changement en douceur
+        });
+    }
+
+    // Fonction utilitaire pour choisir une couleur de texte contrastée (noir ou blanc)
+    function getContrastingTextColor(rgbArray) {
+        const [r, g, b] = rgbArray;
+        const brightness = calculateBrightness(r, g, b);
+        return brightness > 128 ? '#000' : '#fff';
+    }
+
+    // Calculer la luminosité pour déterminer la couleur contrastée
+    function calculateBrightness(r, g, b) {
+        return (r * 299 + g * 587 + b * 114) / 1000;
+    }
+
 
     function getAccessTokenFromUrl() {
         const hash = window.location.hash.substring(1);
@@ -314,8 +391,8 @@
         document.getElementById('song-duration').innerText = formatDuration(data.item.duration_ms);
         document.getElementById('song-progress').innerText = formatDuration(data.progress_ms);
 
-        toggleMarquee('artist-name', 'marquee-artist', artistNames.length > 20);
-        toggleMarquee('song-name', 'marquee-song', songName.length > 20);
+        toggleMarquee('artist-name', 'marquee-artist', artistNames.length > 10);
+        toggleMarquee('song-name', 'marquee-song', songName.length > 8);
     }
 
     function setTextContentByIds(ids, text) {
