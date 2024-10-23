@@ -48,10 +48,51 @@
             z-index: 5;
         }
 
+        /*!* Ajout des reflets de style cartoon *!*/
+        /*.vinyl::before,*/
+        /*.vinyl::after {*/
+        /*    content: '';*/
+        /*    position: absolute;*/
+        /*    width: 50%;*/
+        /*    height: 10%;*/
+        /*    background: rgba(255, 255, 255, 0.2); !* Couleur légèrement transparente pour un effet de reflet *!*/
+        /*    border-radius: 50px;*/
+        /*    transform: rotate(-30deg);*/
+        /*    pointer-events: none;*/
+        /*    z-index: 6;*/
+        /*}*/
+
+        /*!* Premier reflet courbé *!*/
+        /*.vinyl::before {*/
+        /*    top: 10%;*/
+        /*    left: -15%;*/
+        /*    transform: rotate(-25deg);*/
+        /*}*/
+
+        /*!* Deuxième reflet courbé *!*/
+        /*.vinyl::after {*/
+        /*    top: 55%;*/
+        /*    left: 30%;*/
+        /*    transform: rotate(35deg);*/
+        /*}*/
+
+
         .rond {
-            width: 100px;
-            height: 100px;
+            width: 125px;
+            height: 125px;
             background-color: #000;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .rond::before {
+            content: '';
+            width: 25%;
+            height: 25%;
+            background-color: #fff;
             border-radius: 50%;
             position: absolute;
             top: 50%;
@@ -104,6 +145,13 @@
             white-space: nowrap;
         }
 
+        .artist-name, .song-name {
+            /*Center the elements inside*/
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         .loading-bar {
             width: 100%;
             height: 10px;
@@ -130,28 +178,21 @@
         }
 
         .marquee__inner__artist, .marquee__inner__song {
+            display: inline-block;
+            padding-left: 100%;
             width: fit-content;
-            display: flex;
-            position: relative;
-            transform: translate3d(var(--move-initial), 0, 0);
-            animation: marquee 25s linear infinite;
-            animation-play-state: running;
+            animation: marquee 15s linear infinite;
+            white-space: nowrap;
+            line-height: calc(var(--box-height) / 2); /* Center vertically */
         }
-
-        .marquee span {
-            font-size: 20vw;
-            padding: 0 2vw;
-        }
-
 
 
         @keyframes marquee {
             0% {
-                transform: translate3d(var(--move-initial), 0, 0);
+                transform: translateX(0%);
             }
-
             100% {
-                transform: translate3d(var(--move-final), 0, 0);
+                transform: translateX(-100%);
             }
         }
 
@@ -164,7 +205,9 @@
         <div class="vinyl">
             <div class="rond"></div>
             <img id="album-cover" src="" alt="Pochette d'album">
+<!--            <img class="overlay-image" src="transparent-image.png">-->
         </div>
+
         <div class="small-box">
             <div class="small-box-content-text">
                 <div class="artist-name">
@@ -173,20 +216,20 @@
                 <div class="marquee-artist" style="display: none">
                     <div class="marquee__inner__artist" aria-hidden="true">
                         <span id="artist-name-1">Chargement...</span>
-                        <span id="artist-name-2">Chargement...</span>
-                        <span id="artist-name-3">Chargement...</span>
-                        <span id="artist-name-4">Chargement...</span>
+                        <!--                        <span id="artist-name-2">Chargement...</span>-->
+                        <!--                        <span id="artist-name-3">Chargement...</span>-->
+                        <!--                        <span id="artist-name-4">Chargement...</span>-->
                     </div>
                 </div>
                 <div class="song-name">
                     <span id="song-name">Chargement...</span>
                 </div>
                 <div class="marquee-song" style="display: none">
-                    <div class="marquee__inner__song" style="display:none " aria-hidden="true">
+                    <div class="marquee__inner__song" aria-hidden="true">
                         <span id="song-name-1">Chargement...</span>
-                        <span id="song-name-2">Chargement...</span>
-                        <span id="song-name-3">Chargement...</span>
-                        <span id="song-name-4">Chargement...</span>
+                        <!--                        <span id="song-name-2">Chargement...</span>-->
+                        <!--                        <span id="song-name-3">Chargement...</span>-->
+                        <!--                        <span id="song-name-4">Chargement...</span>-->
                     </div>
                 </div>
             </div>
@@ -205,31 +248,22 @@
 
 </body>
 
-
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        isTokenInUrl();
-    });
+    let isPaused = false;
 
-    function isTokenInUrl() {
+    document.addEventListener('DOMContentLoaded', () => {
         const accessToken = getAccessTokenFromUrl();
         if (accessToken) {
-            console.log('Token d\'accès récupéré:', accessToken);
-            fetchCurrentlyPlaying(accessToken);
-            // Utilisez le token ici pour faire des requêtes à l'API Spotify
+            initSpotifyPlayer(accessToken);
+            setInterval(() => {
+                if (!isPaused) updateSongProgress(); // Only update if not paused
+            }, 1000);
+            setInterval(() => refreshIfSongFinished(), 1000);
+            setInterval(() => refreshData(accessToken), 5000); // Check every 5 seconds
         } else {
-            console.error('Token d\'accès non trouvé dans l\'URL');
-            // Redirige l'utilisateur vers Spotify
-            var client_id = '324a24a6a90c4cb396505d1b0def7c07';
-            var redirect_uri = 'http://localhost:63342/SpotiTwitch/connected.html';
-            var scopes = 'user-read-playback-state';
-            window.location.href = 'https://accounts.spotify.com/authorize' +
-                '?response_type=token' +
-                '&client_id=' + encodeURIComponent(client_id) +
-                '&scope=' + encodeURIComponent(scopes) +
-                '&redirect_uri=' + encodeURIComponent(redirect_uri);
+            redirectToSpotifyAuth();
         }
-    }
+    });
 
     function getAccessTokenFromUrl() {
         const hash = window.location.hash.substring(1);
@@ -237,118 +271,108 @@
         return params.get('access_token');
     }
 
+    function redirectToSpotifyAuth() {
+        const client_id = '324a24a6a90c4cb396505d1b0def7c07';
+        const redirect_uri = 'http://localhost:63342/SpotiTwitch/connected.html';
+        const scopes = 'user-read-playback-state';
+        window.location.href = `https://accounts.spotify.com/authorize?response_type=token&client_id=${client_id}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirect_uri)}`;
+    }
+
+    function initSpotifyPlayer(token) {
+        fetchCurrentlyPlaying(token);
+    }
+
     function fetchCurrentlyPlaying(token) {
         fetch('https://api.spotify.com/v1/me/player/currently-playing', {
-            headers: {'Authorization': 'Bearer ' + token}
+            headers: {'Authorization': `Bearer ${token}`}
         })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error('Erreur réseau');
-                }
+                if (!response.ok) throw new Error('Erreur réseau');
                 return response.json();
             })
             .then(data => {
                 if (data && data.item) {
-                    document.getElementById('song-duration').innerText = formatDuration(data.item.duration_ms);
-                    document.getElementById('song-progress').innerText = formatDuration(data.progress_ms);
-                    document.getElementById('album-cover').src = data.item.album.images[0].url;
-
-                    // set all artist span to the artist name
-                    document.getElementById('artist-name-1').innerText = data.item.artists.map(artist => artist.name).join(', ')+ '-' ;
-                    document.getElementById('artist-name-2').innerText = data.item.artists.map(artist => artist.name).join(', ')+ '-';
-                    document.getElementById('artist-name-3').innerText = data.item.artists.map(artist => artist.name).join(', ') + '-' ;
-                    document.getElementById('artist-name-4').innerText = data.item.artists.map(artist => artist.name).join(', ') + '-' ;
-                    document.getElementById('artist-name').innerText = data.item.artists.map(artist => artist.name).join(', ');
-
-                    // set all song span to the song name
-                    document.getElementById('song-name-1').innerText = data.item.name;
-                    document.getElementById('song-name-2').innerText = data.item.name;
-                    document.getElementById('song-name-3').innerText = data.item.name;
-                    document.getElementById('song-name-4').innerText = data.item.name;
-                    document.getElementById('song-name').innerText = data.item.name;
-
-                    if (data.item.artists.map(artist => artist.name).join(', ').length > 20) {
-                        document.getElementById('artist-name').style.display = 'none';
-                        document.getElementsByClassName('marquee-artist')[0].style.display = 'block';
-                    } else {
-                        document.getElementById('artist-name').style.display = 'block';
-                        document.getElementsByClassName('marquee-artist')[0].style.display = 'none';
-                    }
-
-                    if (data.item.name.length > 20) {
-                        document.getElementById('song-name').style.display = 'none';
-                        document.getElementsByClassName('marquee-song')[0].style.display = 'block';
-                    } else {
-                        document.getElementById('song-name').style.display = 'block';
-                        document.getElementsByClassName('marquee-song')[0].style.display = 'none';
-                    }
-
-
-
+                    console.log('Données récupérées:', data);
+                    updateTrackDisplay(data);
+                    isPaused = !data.is_playing; // Update isPaused based on is_playing
                 } else {
                     console.log('Aucune musique en cours de lecture.');
+                    isPaused = true; // Assume paused if no music is playing
                 }
             })
             .catch(error => console.error('Erreur lors de la récupération des données:', error));
     }
 
-    // Fonction pour formater la durée en millisecondes en un format lisible
+    function updateTrackDisplay(data) {
+        const artistNames = data.item.artists.map(artist => artist.name).join(', ');
+        const songName = data.item.name;
+
+        setTextContentByIds(['artist-name', 'artist-name-1', 'artist-name-2', 'artist-name-3', 'artist-name-4'], artistNames);
+        setTextContentByIds(['song-name', 'song-name-1', 'song-name-2', 'song-name-3', 'song-name-4'], songName);
+
+        document.getElementById('album-cover').src = data.item.album.images[0].url;
+        document.getElementById('song-duration').innerText = formatDuration(data.item.duration_ms);
+        document.getElementById('song-progress').innerText = formatDuration(data.progress_ms);
+
+        toggleMarquee('artist-name', 'marquee-artist', artistNames.length > 20);
+        toggleMarquee('song-name', 'marquee-song', songName.length > 20);
+    }
+
+    function setTextContentByIds(ids, text) {
+        ids.forEach(id => {
+            const element = document.getElementById(id);
+            if (element) element.innerText = text;
+        });
+    }
+
+    function toggleMarquee(staticId, marqueeClass, shouldMarquee) {
+        document.getElementById(staticId).style.display = shouldMarquee ? 'none' : 'block';
+        document.getElementsByClassName(marqueeClass)[0].style.display = shouldMarquee ? 'block' : 'none';
+    }
+
     function formatDuration(ms) {
         const minutes = Math.floor(ms / 60000);
         const seconds = ((ms % 60000) / 1000).toFixed(0);
-        return minutes + ":" + (seconds < 10 ? '0' : '') + seconds;
+        return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     }
 
-    function oneSecondAdd() {
-        // Ajouter une seconde à position actuelle toutes les secondes
-        let songProgress = document.getElementById('song-progress').innerText;
-        let songProgressArray = songProgress.split(':');
-        let songProgressSeconds = parseInt(songProgressArray[0]) * 60 + parseInt(songProgressArray[1]);
-        songProgressSeconds++;
-        let songProgressMinutes = Math.floor(songProgressSeconds / 60);
-        let songProgressSecondsRest = songProgressSeconds % 60;
-        if (songProgressSecondsRest < 10) {
-            songProgressSecondsRest = '0' + songProgressSecondsRest;
-        }
-        document.getElementById('song-progress').innerText = songProgressMinutes + ':' + songProgressSecondsRest;
-        let songDuration = document.getElementById('song-duration').innerText;
-        let songDurationArray = songDuration.split(':');
-        let songDurationSeconds = parseInt(songDurationArray[0]) * 60 + parseInt(songDurationArray[1]);
-        let songProgressPercent = songProgressSeconds / songDurationSeconds * 100;
-        document.getElementById('song-progress-percent').innerText = songProgressPercent;
-        document.getElementsByClassName('loading-bar-progress')[0].style.width = songProgressPercent + '%';
+    function updateSongProgress() {
+        const songProgressElem = document.getElementById('song-progress');
+        const songDurationElem = document.getElementById('song-duration');
+
+        let [progressSeconds, durationSeconds] = [songProgressElem, songDurationElem].map(elem => {
+            const [minutes, seconds] = elem.innerText.split(':').map(Number);
+            return minutes * 60 + seconds;
+        });
+
+        progressSeconds = Math.min(progressSeconds + 1, durationSeconds);
+
+        const minutes = Math.floor(progressSeconds / 60);
+        const seconds = progressSeconds % 60;
+        songProgressElem.innerText = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+
+        const progressPercent = (progressSeconds / durationSeconds) * 100;
+        document.querySelector('.loading-bar-progress').style.width = `${progressPercent}%`;
     }
 
-    // Fonction pour relancer la fonction fetchCurrentlyPlaying des que la musique change
-    function refreshData() {
-        const accessToken = getAccessTokenFromUrl();
-        if (accessToken) {
-            console.log('Token d\'accès récupéré:', accessToken);
-            fetchCurrentlyPlaying(accessToken);
-            // Utilisez le token ici pour faire des requêtes à l'API Spotify
-        } else {
-            console.error('Token d\'accès non trouvé dans l\'URL');
-            isTokenInUrl();
-        }
+    function refreshData(token) {
+        fetchCurrentlyPlaying(token); // This call also updates isPaused status
     }
 
-    // Fonction pour relancer la fonction refreshData dès que song-progress > song-duration
-    function refreshDataIfSongFinished() {
-        let songProgress = document.getElementById('song-progress').innerText;
-        let songProgressArray = songProgress.split(':');
-        let songProgressSeconds = parseInt(songProgressArray[0]) * 60 + parseInt(songProgressArray[1]);
-        let songDuration = document.getElementById('song-duration').innerText;
-        let songDurationArray = songDuration.split(':');
-        let songDurationSeconds = parseInt(songDurationArray[0]) * 60 + parseInt(songDurationArray[1]);
-        if (songProgressSeconds >= songDurationSeconds) {
-            refreshData();
+    function refreshIfSongFinished() {
+        const songProgressElem = document.getElementById('song-progress');
+        const songDurationElem = document.getElementById('song-duration');
+
+        const [progressSeconds, durationSeconds] = [songProgressElem, songDurationElem].map(elem => {
+            const [minutes, seconds] = elem.innerText.split(':').map(Number);
+            return minutes * 60 + seconds;
+        });
+
+        if (progressSeconds >= durationSeconds) {
+            refreshData(getAccessTokenFromUrl());
         }
     }
 
-
-    setInterval(oneSecondAdd, 1000); // On ajoute une seconde toutes les secondes
-    setInterval(refreshDataIfSongFinished, 1000); // On vérifie toutes les secondes si la musique est finie
-    setInterval(refreshData, 15000) // On vérifie toutes les 15 secondes si la musique a changé
 
 </script>
 
