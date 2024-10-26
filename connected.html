@@ -350,7 +350,7 @@
 
     function redirectToSpotifyAuth() {
         const client_id = '324a24a6a90c4cb396505d1b0def7c07';
-        const redirect_uri = 'http://localhost:63342/SpotiTwitch/connected.html';
+        const redirect_uri = 'http://localhost/SpotiTwitch/connected.html';
         const scopes = 'user-read-playback-state';
         window.location.href = `https://accounts.spotify.com/authorize?response_type=token&client_id=${client_id}&scope=${encodeURIComponent(scopes)}&redirect_uri=${encodeURIComponent(redirect_uri)}`;
     }
